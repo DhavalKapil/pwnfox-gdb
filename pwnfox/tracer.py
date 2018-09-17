@@ -2,6 +2,8 @@ import gdb
 
 from pwnfox.utils import *
 
+array_objects = []
+
 class NewArrayFinishBreakpoint(gdb.FinishBreakpoint):
   def __init__(self):
     gdb.FinishBreakpoint.__init__(
@@ -12,8 +14,10 @@ class NewArrayFinishBreakpoint(gdb.FinishBreakpoint):
     self.silent = True
 
   def stop(self):
-    # TODO: NewArray() returned
     log.debug("NewArray finished")
+    frame = gdb.newest_frame()
+    arr_addr = int(frame.read_register('rax'))
+    array_objects.append(arr_addr)
     return False
 
 class NewArrayBreakpoint(gdb.Breakpoint):
@@ -26,7 +30,6 @@ class NewArrayBreakpoint(gdb.Breakpoint):
     self.silent = True
 
   def stop(self):
-    # TODO: NewArray() has just been called
     log.debug("NewArray called")
     NewArrayFinishBreakpoint()
     return False
