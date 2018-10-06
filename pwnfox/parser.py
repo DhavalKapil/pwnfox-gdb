@@ -3,9 +3,15 @@ from . import *
 import gdb
 import binascii
 
+MAX_LEN_TO_DISPLAY = 0x10
+
 # Helper functions
 def u8(s):
   assert(len(s) == 1)
+  return int(binascii.hexlify(s[::-1]), 16)
+
+def u16(s):
+  assert(len(s) == 2)
   return int(binascii.hexlify(s[::-1]), 16)
 
 def u32(s):
@@ -15,6 +21,13 @@ def u32(s):
 def u64(s):
   assert(len(s) == 8)
   return int(binascii.hexlify(s[::-1]), 16)
+
+SIZE_TO_UNPACKER = {
+  8: u8,
+  16: u16,
+  32: u32,
+  64: u64
+}
 
 def memview_substr(memview, start, end):
   # TODO: Somehow, it only works byte by byte
@@ -110,8 +123,8 @@ def array_object(addr):
 
   # Reading Array elements
   len_to_display = obj_elements['length']
-  if len_to_display > 0x10:
-    len_to_display = 0x10
+  if len_to_display > MAX_LEN_TO_DISPLAY:
+    len_to_display = MAX_LEN_TO_DISPLAY
 
   array_contents = inferior.read_memory(
     array['elements_'],
@@ -123,3 +136,49 @@ def array_object(addr):
   array['elements_contents'] = array_content
 
   return array
+
+def typed_array_object(addr, size):
+  inferior = gdb.selected_inferior()
+
+  # Reading NativeObject
+  typed_array_object = native_object(addr)
+
+  # Reading SLOT metadata
+  slot_contents = inferior.read_memory(
+    addr + 0x20,
+    0x20
+  ).tobytes()
+
+  typed_array_object['BUFFER_SLOT'] = jsval.jsval_to_object(
+    u64(slot_contents[0:8])
+  )
+  typed_array_object['LENGTH_SLOT'] = jsval.jsval_to_int32(
+    u64(slot_contents[8:16])
+  )
+  typed_array_object['BYTEOFFSET_SLOT'] = jsval.jsval_to_int32(
+    u64(slot_contents[16:24])
+  )
+  # RESERVED_SLOT is actually the DATA slot
+  typed_array_object['RESERVED_SLOT'] = u64(slot_contents[24:32])
+
+  # Reading contents
+  len_to_display = typed_array_object['LENGTH_SLOT']
+  if len_to_display > MAX_LEN_TO_DISPLAY:
+    len_to_display = MAX_LEN_TO_DISPLAY
+
+  array_elements = inferior.read_memory(
+    typed_array_object['RESERVED_SLOT'],
+    size * len_to_display
+  ).tobytes()
+
+  typed_array_object['elements_contents'] = []
+
+  unpack = SIZE_TO_UNPACKER[size]
+  for i in range(len_to_display):
+    start_index = i*int(size/8)
+    end_index = (i+1)*int(size/8)
+    typed_array_object['elements_contents'].append(
+      unpack(array_elements[start_index:end_index])
+    )
+
+  return typed_array_object

@@ -1,3 +1,6 @@
+from . import jsval
+from . import parser
+
 # Setting up tracer
 from . import tracer
 
