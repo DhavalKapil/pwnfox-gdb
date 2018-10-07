@@ -12,6 +12,7 @@ uint16_array_objects = []
 int16_array_objects = []
 uint32_array_objects = []
 int32_array_objects = []
+array_buffer_objects = []
 
 class NewArrayFinishBreakpoint(gdb.FinishBreakpoint):
   def __init__(self):
@@ -212,6 +213,36 @@ class NewInt32ArrayBreakpoint(NewTypedArrayObjectBreakpoint):
       NewInt32ArrayFinishBreakpoint
     )
 
+class NewArrayBufferFinishBreakpoint(gdb.FinishBreakpoint):
+  def __init__(self):
+    gdb.FinishBreakpoint.__init__(
+      self,
+      gdb.newest_frame(),
+      internal = True
+    )
+    self.silent = True
+
+  def stop(self):
+    log.debug("NewArrayBuffer finished")
+    frame = gdb.newest_frame()
+    arr_buf_addr = int(frame.read_register('rax'))
+    array_buffer_objects.append(arr_buf_addr)
+    return False
+
+class NewArrayBufferBreakpoint(gdb.Breakpoint):
+  def __init__(self):
+    gdb.Breakpoint.__init__(
+      self,
+      'js::ArrayBufferObject::create(JSContext*, unsigned int, js::ArrayBufferObject::BufferContents, js::ArrayBufferObject::OwnsState, JS::Handle<JSObject*>, js::NewObjectKind)',
+      internal = True
+    )
+    self.silent = True
+
+  def stop(self):
+    log.debug("NewArrayBuffer called")
+    NewArrayBufferFinishBreakpoint()
+    return False
+
 def setupTypedArrayObjectBreakpoints():
   NewUint8ArrayBreakpoint()
   NewInt8ArrayBreakpoint()
@@ -225,3 +256,5 @@ def setup():
   NewObjectBreakpoint()
 
   setupTypedArrayObjectBreakpoints()
+
+  NewArrayBufferBreakpoint()

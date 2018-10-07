@@ -217,6 +217,41 @@ class JSInt32ArrayCommand(JSTypedArrayObjectCommand):
       32
     )
 
+class JSArrayBuffersCommand(gdb.Command):
+  "js_array_buffers - Displays all javascript array buffers"
+
+  def __init__(self):
+    super(JSArrayBuffersCommand, self).__init__(
+      "js_array_buffers",
+      gdb.COMMAND_STATUS,
+    )
+
+  def invoke(self, argument, from_tty):
+    for array_buffer in tracer.array_buffer_objects:
+      buffer = parser.array_buffer_object(array_buffer)
+      s = hex(array_buffer) + \
+          ": (%d elements)" % buffer['BYTE_LENGTH_SLOT']
+      log.info(s)
+
+class JSArrayBufferCommand(gdb.Command):
+  "js_array_buffer [address] - Parse and display array buffer at this address"
+
+  def __init__(self):
+    super(JSArrayBufferCommand, self).__init__(
+      "js_array_buffer",
+      gdb.COMMAND_STATUS,
+      gdb.COMPLETE_LOCATION,
+      False
+    )
+
+  def invoke(self, argument, from_tty):
+    if argument is None or argument == "":
+      log.info("js_array_buffer requires an address as argument")
+      return
+    array_buffer_addr = parser.arg_to_int(argument)
+    array_buffer = parser.array_buffer_object(array_buffer_addr)
+    log.info(array_buffer)
+
 def setupJSTypedArrayCommands():
   JSUint8ArraysCommand()
   JSInt8ArraysCommand()
@@ -239,3 +274,6 @@ def setup():
   JSObjectCommand()
 
   setupJSTypedArrayCommands()
+
+  JSArrayBuffersCommand()
+  JSArrayBufferCommand()

@@ -182,3 +182,29 @@ def typed_array_object(addr, size):
     )
 
   return typed_array_object
+
+def array_buffer_object(addr):
+  inferior = gdb.selected_inferior()
+
+  # Reading NativeObject
+  array_buffer_object = native_object(addr)
+
+  # Reading SLOT meta data
+  slot_contents = inferior.read_memory(
+    addr + 0x20,
+    0x20
+  ).tobytes()
+
+  # Stored pointer is 'private'
+  array_buffer_object['DATA_SLOT'] = u64(slot_contents[0:8]) << 1
+  array_buffer_object['BYTE_LENGTH_SLOT'] = jsval.jsval_to_int32(
+    u64(slot_contents[8:16])
+  )
+  array_buffer_object['FIRST_VIEW_SLOT'] = jsval.jsval_to_object(
+    u64(slot_contents[16:24])
+  )
+  array_buffer_object['FLAGS_SLOT'] = jsval.jsval_to_int32(
+    u64(slot_contents[24:32])
+  )
+
+  return array_buffer_object
