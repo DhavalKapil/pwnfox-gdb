@@ -1,5 +1,8 @@
 import sys
 import inspect
+import pprint
+
+pp = pprint.PrettyPrinter(indent=2)
 
 def debug(s):
   sys.stdout.write("[*] DEBUG: ")
@@ -11,7 +14,7 @@ def error(s):
 
 def info(s):
   sys.stdout.write("[*] INFO: ")
-  print(s)
+  pp.pprint(s)
 
 def pprint(obj):
   sys.stdout.write("[*] PPRINT: ")

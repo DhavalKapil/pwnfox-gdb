@@ -132,7 +132,7 @@ def array_object(addr):
   ).tobytes()
   array_content = []
   for i in range(len_to_display):
-    array_content.append(array_contents[i*8:i*8+8])
+    array_content.append(jsval.parse_jsval(u64(array_contents[i*8:i*8+8])))
   array['elements_contents'] = array_content
 
   return array
